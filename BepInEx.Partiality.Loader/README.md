@@ -1,0 +1,1 @@
+﻿If the assumed Steam directory is not correct for you, simply have a "SteamPath" environment that points to your Steam directory (do not include an ending backslash.)
