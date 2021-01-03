@@ -9,11 +9,13 @@ using System.Reflection;
 
 namespace BepInEx.Partiality.Patcher
 {
-    public static class PatcherEntrance
+    public static class Program
     {
         private static readonly string partDirectory = Directory.CreateDirectory(Paths.PluginPath + "\\..\\partiality").FullName;
 
-        static PatcherEntrance()
+        internal static readonly ManualLogSource logger = Logger.CreateLogSource("PartPatch");
+
+        static Program()
         {
             // Ensure all assemblies we want are loaded
             AssemblyPatcher.PatchAndLoad(Paths.PluginPath);
@@ -38,12 +40,14 @@ namespace BepInEx.Partiality.Patcher
 
         public static void Patch(AssemblyDefinition assembly)
         {
-            // If it references the old HOOKS-Assembly-CSharp, fix it!
-            if (assembly.MainModule.AssemblyReferences.Any(n => n.FullName.StartsWith("HOOKS-Assembly-CSharp")))
+            // If it references HOOKS-Assembly-CSharp and uses Partiality, it might be legacy!
+            // Note this code is very inefficient (LINQ and 2x the needed iterations!), but I doubt most mod assemblies have that many references, so meh.
+            if (assembly.MainModule.AssemblyReferences.Any(n => n.FullName.StartsWith("HOOKS-Assembly-CSharp")) &&
+                assembly.MainModule.AssemblyReferences.Any(n => n.FullName.StartsWith("Partiality")))
             {
                 var patcher = new Patcher(assembly.MainModule);
-                patcher.UpdateMonoModHookNames();
                 patcher.IgnoreAccessChecks();
+                patcher.UpdateMonoModHookNames();
                 patcher.Finish();
             }
         }

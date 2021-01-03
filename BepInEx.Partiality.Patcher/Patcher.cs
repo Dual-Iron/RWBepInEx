@@ -1,6 +1,7 @@
 ﻿using BepInEx.Logging;
 using Mono.Cecil;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -9,13 +10,13 @@ namespace BepInEx.Partiality.Patcher
 {
     public partial class Patcher
     {
-        private readonly ModuleDefinition module;
-        private readonly int id;
-
         private static readonly MethodBase ignoreAccessChecksCtor = typeof(IgnoresAccessChecksToAttribute).GetConstructor(new[] { typeof(string) });
-        private static readonly ManualLogSource logger = Logger.CreateLogSource("PartPatch");
 
         private static int globalId;
+
+        private readonly ReferenceTransformer types = new ReferenceTransformer();
+        private readonly ModuleDefinition module;
+        private readonly int id;
 
         public Patcher(ModuleDefinition module)
         {
@@ -25,21 +26,21 @@ namespace BepInEx.Partiality.Patcher
 
         public void UpdateMonoModHookNames()
         {
-            logger.LogInfo("${id}: Updating MonoMod HookGen names");
+            Program.logger.LogInfo($"{id}: Updating MonoMod HookGen names");
 
             try
             {
-
+                new TypeScanner(types).ApplyOverTypes(module);
             }
             catch (Exception e)
             {
-                logger.LogError($"{id}: Failed updating MonoMod hook names: " + e);
+                Program.logger.LogError($"{id}: Failed updating MonoMod hook names: " + e);
             }
         }
 
         public void IgnoreAccessChecks()
         {
-            logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute");
+            Program.logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute");
 
             try
             {
@@ -53,7 +54,7 @@ namespace BepInEx.Partiality.Patcher
             }
             catch (Exception e)
             {
-                logger.LogError($"{id}: Failed adding attribute: " + e);
+                Program.logger.LogError($"{id}: Failed adding attribute: " + e);
             }
         }
 
