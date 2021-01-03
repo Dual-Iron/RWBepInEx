@@ -25,7 +25,7 @@ namespace BepInEx.Partiality.Patcher
 
         public void UpdateMonoModHookNames()
         {
-            logger.LogInfo("${id}: Updating MonoMod HookGen names.");
+            logger.LogInfo("${id}: Updating MonoMod HookGen names");
 
             try
             {
@@ -33,13 +33,13 @@ namespace BepInEx.Partiality.Patcher
             }
             catch (Exception e)
             {
-                logger.LogError($"{id}: Failed updating MonoMod hook names. " + e);
+                logger.LogError($"{id}: Failed updating MonoMod hook names: " + e);
             }
         }
 
         public void IgnoreAccessChecks()
         {
-            logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute.");
+            logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute");
 
             try
             {
@@ -53,7 +53,7 @@ namespace BepInEx.Partiality.Patcher
             }
             catch (Exception e)
             {
-                logger.LogError($"{id}: Failed adding attribute. " + e);
+                logger.LogError($"{id}: Failed adding attribute: " + e);
             }
         }
 
