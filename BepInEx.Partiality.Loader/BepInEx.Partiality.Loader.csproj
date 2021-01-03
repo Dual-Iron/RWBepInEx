@@ -3,7 +3,8 @@
 
   <PropertyGroup>
     <BepPath>..\src\BepInEx</BepPath>
-    <SteamPath Condition="'$(SteamPath)' == ''">C:\Program Files (x86)\Steam\</SteamPath>
+    <SteamPathX>$(SteamPath)</SteamPathX>
+    <SteamPathX Condition="'$(SteamPathX)' == ''">C:\Program Files (x86)\Steam\</SteamPathX>
     <Version>1.0.0</Version>
     <TargetFramework>net35</TargetFramework>
     <DebugType>None</DebugType>
@@ -22,13 +23,23 @@
     <Reference Include="$(BepPath)\plugins\PartialityWrapper\Partiality.dll">
       <Private>false</Private>
     </Reference>
-    <Reference Include="$(SteamPath)\steamapps\common\Rain World\RainWorld_Data\Managed\UnityEngine.dll">
+    <Reference Include="$(SteamPathX)\steamapps\common\Rain World\RainWorld_Data\Managed\UnityEngine.dll">
       <Private>false</Private>
     </Reference>
   </ItemGroup>
     
   <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.10.4">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="MonoMod" Version="20.12.25.1" />
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="20.12.25.1">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
     <PackageReference Include="MonoMod.RuntimeDetour.HookGen" Version="20.12.25.1" />
+    <PackageReference Include="MonoMod.Utils" Version="20.12.25.1">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
   
 </Project>
