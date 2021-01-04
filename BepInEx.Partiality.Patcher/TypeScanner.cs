@@ -91,13 +91,52 @@ namespace BepInEx.Partiality.Patcher
             if (method == null)
                 return;
             
-            MutateTypeReference(method.ReturnType);
             MutateTypeReference(method.DeclaringType);
 
-            foreach (var parameter in method.Parameters)
+            if (!TryReplaceMethodReference(method))
             {
-                MutateTypeReference(parameter.ParameterType);
+                MutateTypeReference(method.ReturnType);
+
+                foreach (var parameter in method.Parameters)
+                {
+                    MutateTypeReference(parameter.ParameterType);
+                }
             }
+        }
+
+        private static bool TryReplaceMethodReference(MethodReference method)
+        {
+            // If this is referencing a MonoMod method, match its new parameter types.
+            if (method.DeclaringType.FullName.StartsWith("On."))
+            {
+                // If we can find a new type & method, use it
+                var newType = Program.NewHooksAssembly.MainModule.GetType(method.DeclaringType.FullName);
+                if (newType == null)
+                    return false;
+
+                var newMethod = newType.Methods.FirstOrDefault(m => m.Name == method.Name);
+                if (newMethod == null)
+                    return false;
+
+                method.ReturnType = method.Module.ImportReference(newMethod.ReturnType);
+
+                for (int i = 0; i < newMethod.Parameters.Count; i++)
+                {
+                    var newParamType = method.Module.ImportReference(newMethod.Parameters[i].ParameterType);
+                    if (i == method.Parameters.Count)
+                        method.Parameters.Add(new ParameterDefinition(newParamType));
+                    else
+                        method.Parameters[i] = new ParameterDefinition(newParamType);
+                }
+
+                while (method.Parameters.Count > newMethod.Parameters.Count)
+                {
+                    method.Parameters.RemoveAt(method.Parameters.Count - 1);
+                }
+
+                return true;
+            }
+            return false;
         }
 
         private void MutateTypeReference(TypeReference type)
