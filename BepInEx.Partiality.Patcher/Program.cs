@@ -30,9 +30,6 @@ namespace BepInEx.Partiality.Patcher
                 // Snag this assembly!
                 yield return "HOOKS-Assembly-CSharp.dll";
 
-                // Also patch Partiality to fix its reference.
-                yield return "Partiality.dll";
-
                 // Just target all DLLs in the plugin and partiality directory.
                 foreach (var item in Directory.GetFiles(partDirectory, "*.dll"))
                 {
@@ -53,31 +50,39 @@ namespace BepInEx.Partiality.Patcher
             }
             else
             // If it references HOOKS-Assembly-CSharp and uses Partiality, it might be legacy!
-            if (TryGetHooksReference(assembly.MainModule, out int oldIndex))
+            // Note this code is very inefficient (LINQ and 2x the needed iterations!), but I doubt most mod assemblies have that many references, so meh.
+            if (Relevant(assembly))
             {
-                assembly.MainModule.AssemblyReferences[oldIndex] = AssemblyNameReference.Parse(NewHooksAssembly.FullName);
-                if (assembly.MainModule.AssemblyReferences.Any(n => n.Name == "Partiality"))
-                {
-                    var patcher = new Patcher(assembly.MainModule);
-                    patcher.IgnoreAccessChecks();
-                    patcher.UpdateMonoModHookNames();
-                    patcher.Finish();
-                }
+                var patcher = new Patcher(assembly.MainModule);
+                patcher.IgnoreAccessChecks();
+                patcher.UpdateMonoModHookNames();
+                patcher.Finish();
             }
         }
-        
-        private static bool TryGetHooksReference(ModuleDefinition module, out int index)
+
+        private static bool Relevant(AssemblyDefinition asm)
         {
-            for (int i = 0; i < module.AssemblyReferences.Count; i++)
+            bool foundHookGen = false;
+            bool foundPartiality = false;
+
+            for (int i = 0; i < asm.MainModule.AssemblyReferences.Count; i++)
             {
-                var asmRef = module.AssemblyReferences[i];
-                if (asmRef.Name == "HOOKS-Assembly-CSharp")
+                var asmRef = asm.MainModule.AssemblyReferences[i];
+
+                if (!foundPartiality && asmRef.Name == "Partiality")
                 {
-                    index = i;
+                    foundPartiality = true;
+                }
+                if (!foundHookGen && asmRef.Name == "HOOKS-Assembly-CSharp")
+                {
+                    foundHookGen = true;
+                }
+
+                if (foundPartiality && foundHookGen)
+                {
                     return true;
                 }
             }
-            index = 0;
             return false;
         }
     }
