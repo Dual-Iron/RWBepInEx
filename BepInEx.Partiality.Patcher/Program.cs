@@ -9,8 +9,6 @@ namespace BepInEx.Partiality.Patcher
 {
     public static class Program
     {
-        private static readonly string partDirectory = Directory.CreateDirectory(Paths.PluginPath + "\\..\\partiality").FullName;
-
         internal static ManualLogSource Logger { get; } = Logging.Logger.CreateLogSource("PartPatch");
 
         internal static AssemblyDefinition NewHooksAssembly { get; private set; }
@@ -20,7 +18,6 @@ namespace BepInEx.Partiality.Patcher
             // Ensure all assemblies we want are loaded
             AssemblyPatcher.PatchAndLoad(Path.Combine(Paths.PluginPath, "PartialityWrapper"));
             AssemblyPatcher.PatchAndLoad(Paths.PluginPath);
-            AssemblyPatcher.PatchAndLoad(partDirectory);
         }
 
         public static IEnumerable<string> TargetDLLs
@@ -30,11 +27,7 @@ namespace BepInEx.Partiality.Patcher
                 // Snag this assembly!
                 yield return "HOOKS-Assembly-CSharp.dll";
 
-                // Just target all DLLs in the plugin and partiality directory.
-                foreach (var item in Directory.GetFiles(partDirectory, "*.dll"))
-                {
-                    yield return Path.GetFileName(item);
-                }
+                // Just target all DLLs in the plugin directory.
                 foreach (var item in Directory.GetFiles(Paths.PluginPath, "*.dll"))
                 {
                     yield return Path.GetFileName(item);
