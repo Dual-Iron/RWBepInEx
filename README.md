@@ -1,7 +1,5 @@
 # RainyBepis
-Rain World BepInEx file soup.
-Confirmed to work with:
-- BepInEx plugins
+Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiality mods.
 
 ## To install
 ### Method 1: From fresh Rain World install
