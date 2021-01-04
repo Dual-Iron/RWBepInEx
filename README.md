@@ -5,7 +5,9 @@ Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiali
 ### Method 1: From fresh Rain World install
 1. Unzip the provided zip file from [the latest release](https://github.com/Dual-Iron/RainyBepis/releases/latest) somewhere safe.
 2. Put the contents of the zip file into your Rain World directory. (By default: `C:\Program Files (x86)\Steam\steamapps\common\Rain World`.)
-3. Add the files `Dragons.dll`, `Dragons.HookGenCompatibility.dll`, and `Dragons.PublicDragon` from [pastebee's BepInEx tool](http://www.raindb.net/) (Tools -> BepInEx) to the `BepInEx/patchers` directory.
+3. Run [thalber's BlepOutIn](https://github.com/thalber/BOI/) like usual.
+
+[This video](https://github.com/Dual-Iron/RainyBepis/raw/main/bix%20install.mp4) details installing bix, and [this video](https://github.com/Dual-Iron/RainyBepis/raw/main/mod%20install.mp4) details installing a mod ([thalber's BetterShelters](https://github.com/thalber/BetterShelters)).
 
 ### Method 2: From pastebee's 5.0 BepInEx
 Make sure BlepInOut is closed while following these instructions.
