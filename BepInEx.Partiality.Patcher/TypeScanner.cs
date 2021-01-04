@@ -14,39 +14,39 @@ namespace BepInEx.Partiality.Patcher
 
         public TypeScanner(ReferenceTransformer relations)
         {
-            this.transformer = relations;
+            transformer = relations;
         }
 
         /// <summary>
         /// Transforms references as necessary in the given assembly.
         /// </summary>
         /// <param name="module"></param>
-        public void ApplyOverTypes(ModuleDefinition module)
+        public void TransformTypes(ModuleDefinition module)
         {
             foreach (var type in module.Types)
             {
                 try
                 {
-                    ApplyOverType(type);
+                    TransformType(type);
                 }
                 catch (Exception e)
                 {
-                    Program.logger.LogError($"While scanning {type}: {e}");
+                    Program.Logger.LogError($"While scanning {type}: {e}");
                 }
             }
         }
 
-        private void ApplyOverType(TypeDefinition type)
+        private void TransformType(TypeDefinition type)
         {
             // Necessary evil
             foreach (var method in type.Methods)
             {
-                ApplyOverMethod(method);
+                TransformMethodDefinition(method);
             }
             foreach (var property in type.Properties)
             {
-                ApplyOverMethod(property.GetMethod);
-                ApplyOverMethod(property.SetMethod);
+                TransformMethodDefinition(property.GetMethod);
+                TransformMethodDefinition(property.SetMethod);
             }
             foreach (var field in type.Fields)
             {
@@ -54,26 +54,20 @@ namespace BepInEx.Partiality.Patcher
             }
             foreach (var @event in type.Events)
             {
-                ApplyOverMethod(@event.AddMethod);
-                ApplyOverMethod(@event.RemoveMethod);
-                ApplyOverMethod(@event.InvokeMethod);
+                TransformMethodDefinition(@event.AddMethod);
+                TransformMethodDefinition(@event.RemoveMethod);
+                TransformMethodDefinition(@event.InvokeMethod);
             }
         }
 
-        private void ApplyOverMethod(MethodDefinition method)
+        private void TransformMethodDefinition(MethodDefinition method)
         {
-            if (method == null) 
+            if (method == null)
                 return;
 
-            if (method.ReturnType != null)
-                MutateTypeReference(method.ReturnType);
+            TransformMethodReference(method);
 
-            foreach (var parameter in method.Parameters)
-            {
-                MutateTypeReference(parameter.ParameterType);
-            }
-
-            if (method.Body == null)
+            if (!method.HasBody)
                 return;
 
             foreach (var instr in method.Body.Instructions)
@@ -86,8 +80,23 @@ namespace BepInEx.Partiality.Patcher
                 // Or, if the operand is referencing a function (calling add_ or remove_ on events), check it, too!
                 else if (instr.Operand is MethodReference methodRef)
                 {
+                    TransformMethodReference(methodRef);
                     transformer.DoTransform(methodRef);
                 }
+            }
+        }
+
+        private void TransformMethodReference(MethodReference method)
+        {
+            if (method == null)
+                return;
+
+            if (method.ReturnType != null)
+                MutateTypeReference(method.ReturnType);
+
+            foreach (var parameter in method.Parameters)
+            {
+                MutateTypeReference(parameter.ParameterType);
             }
         }
 

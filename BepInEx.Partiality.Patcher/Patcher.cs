@@ -26,21 +26,21 @@ namespace BepInEx.Partiality.Patcher
 
         public void UpdateMonoModHookNames()
         {
-            Program.logger.LogInfo($"{id}: Updating MonoMod HookGen names");
+            Program.Logger.LogInfo($"{id}: Updating MonoMod HookGen names");
 
             try
             {
-                new TypeScanner(types).ApplyOverTypes(module);
+                new TypeScanner(types).TransformTypes(module);
             }
             catch (Exception e)
             {
-                Program.logger.LogError($"{id}: Failed updating MonoMod hook names: " + e);
+                Program.Logger.LogError($"{id}: Failed updating MonoMod hook names: " + e);
             }
         }
 
         public void IgnoreAccessChecks()
         {
-            Program.logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute");
+            Program.Logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute");
 
             try
             {
@@ -54,7 +54,7 @@ namespace BepInEx.Partiality.Patcher
             }
             catch (Exception e)
             {
-                Program.logger.LogError($"{id}: Failed adding attribute: " + e);
+                Program.Logger.LogError($"{id}: Failed adding attribute: " + e);
             }
         }
 
