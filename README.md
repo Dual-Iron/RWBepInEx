@@ -13,6 +13,8 @@ Make sure BlepInOut is closed while following these instructions.
 1. In the Rain World directory, delete: `BepInEx/`, `doorstop_config.ini`, `winhttp.dll` (and `Mods/` if present)
 2. [Goto method 1](#from-fresh-rain-world-install)
 
+If it seems like mods are being initialized & enabled twice, it's because they are. That's a sign that you didn't delete the old `BepInEx/` folder; make sure you do!
+
 ### Method 3: From Partiality
 1. Uninstall partiality completely. (TODO describe this better lol)
 2. [Goto method 1](#from-fresh-rain-world-install)
