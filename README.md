@@ -1,24 +1,25 @@
-# RainyBepis
-Rain World BepInEx file soup.
-Confirmed to work with:
-- BepInEx plugins
+Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiality mods.
 
-## To install
+# To install
 ### Method 1: From fresh Rain World install
-1. Unzip the provided DLL from [the latest release](https://github.com/Dual-Iron/RainyBepis/releases/latest) somewhere safe.
-2. Put the contents of the `src` folder into your Rain World directory. (By default, this is `C:\Program Files (x86)\Steam\steamapps\common\Rain World`.)
-3. Add the files `Dragons.dll`, `Dragons.HookGenCompatibility.dll`, and `Dragons.PublicDragon` from [pastebee's BepInEx tool](http://www.raindb.net/) (Tools -> BepInEx) to the `BepInEx/patchers` directory.
+1. Unzip the provided zip file from [the latest release](https://github.com/Dual-Iron/RainyBepis/releases/latest) somewhere safe.
+2. Put the contents of the zip file into your Rain World directory. (By default: `C:\Program Files (x86)\Steam\steamapps\common\Rain World`.)
+3. Run [thalber's BlepOutIn](https://github.com/thalber/BOI/) like usual.
+
+[This video](https://github.com/Dual-Iron/RainyBepis/raw/main/bix%20install.mp4) details installing bix, and [this video](https://github.com/Dual-Iron/RainyBepis/raw/main/mod%20install.mp4) details installing a mod ([thalber's BetterShelters](https://github.com/thalber/BetterShelters)).
 
 ### Method 2: From pastebee's 5.0 BepInEx
 Make sure BlepInOut is closed while following these instructions.
 1. In the Rain World directory, delete: `BepInEx/`, `doorstop_config.ini`, `winhttp.dll` (and `Mods/` if present)
 2. [Goto method 1](#from-fresh-rain-world-install)
 
+If it seems like mods are being initialized & enabled twice, it's because they are. That's a sign that you didn't delete the old `BepInEx/` folder; make sure you do!
+
 ### Method 3: From Partiality
 1. Uninstall partiality completely. (TODO describe this better lol)
 2. [Goto method 1](#from-fresh-rain-world-install)
 
-## To see console logs
+# To see console logs
 This is very useful for debugging. Console logs show all BepInEx and Unity logs in real time.
 1. Open `BepInEx\config\BepInEx.cfg`.
 2. Find `[Logging.Console]`.
@@ -26,7 +27,7 @@ This is very useful for debugging. Console logs show all BepInEx and Unity logs 
 
 There are also other logging options in the .cfg file that can be safely modified. Tune to your liking.
 
-## To use [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug#scriptengine)
+# To use [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug#scriptengine)
 ScriptEngine allows you to hot reload mods, i.e., while the game is running, and at any time. Needless to say, this is absolutely invaluable to debugging.
 
 To install:
