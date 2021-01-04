@@ -1,4 +1,16 @@
-Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiality mods.
+Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiality mods. 
+
+<details>
+  <summary>Credits</summary>
+  
+* Pastebee, for help with some debugging and their Dragons code samples
+  * Discord: ID is 695651562542071871
+  * GitHub: https://github.com/aaay-aaay/
+* The Rain World community, for making this worthwhile
+  * Discord: https://discord.gg/rainworld
+* The BepInEx team
+  * GitHub: https://github.com/BepInEx/
+</details>
 
 # To install
 ### Method 1: From fresh Rain World install
