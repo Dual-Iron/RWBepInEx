@@ -4,7 +4,7 @@ Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiali
 ## To install
 ### Method 1: From fresh Rain World install
 1. Unzip the provided zip file from [the latest release](https://github.com/Dual-Iron/RainyBepis/releases/latest) somewhere safe.
-2. Put the contents of the zip file into your Rain World directory. (By default, this is `C:\Program Files (x86)\Steam\steamapps\common\Rain World`.)
+2. Put the contents of the zip file into your Rain World directory. (By default: `C:\Program Files (x86)\Steam\steamapps\common\Rain World`.)
 3. Add the files `Dragons.dll`, `Dragons.HookGenCompatibility.dll`, and `Dragons.PublicDragon` from [pastebee's BepInEx tool](http://www.raindb.net/) (Tools -> BepInEx) to the `BepInEx/patchers` directory.
 
 ### Method 2: From pastebee's 5.0 BepInEx
