@@ -90,9 +90,9 @@ namespace BepInEx.Partiality.Patcher
         {
             if (method == null)
                 return;
-
-            if (method.ReturnType != null)
-                MutateTypeReference(method.ReturnType);
+            
+            MutateTypeReference(method.ReturnType);
+            MutateTypeReference(method.DeclaringType);
 
             foreach (var parameter in method.Parameters)
             {
