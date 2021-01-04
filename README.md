@@ -1,7 +1,6 @@
-# RainyBepis
 Rain World BepInEx file soup. Works with BepInEx plugins, patchers, and Partiality mods.
 
-## To install
+# To install
 ### Method 1: From fresh Rain World install
 1. Unzip the provided zip file from [the latest release](https://github.com/Dual-Iron/RainyBepis/releases/latest) somewhere safe.
 2. Put the contents of the zip file into your Rain World directory. (By default: `C:\Program Files (x86)\Steam\steamapps\common\Rain World`.)
@@ -18,7 +17,7 @@ Make sure BlepInOut is closed while following these instructions.
 1. Uninstall partiality completely. (TODO describe this better lol)
 2. [Goto method 1](#from-fresh-rain-world-install)
 
-## To see console logs
+# To see console logs
 This is very useful for debugging. Console logs show all BepInEx and Unity logs in real time.
 1. Open `BepInEx\config\BepInEx.cfg`.
 2. Find `[Logging.Console]`.
@@ -26,7 +25,7 @@ This is very useful for debugging. Console logs show all BepInEx and Unity logs 
 
 There are also other logging options in the .cfg file that can be safely modified. Tune to your liking.
 
-## To use [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug#scriptengine)
+# To use [ScriptEngine](https://github.com/BepInEx/BepInEx.Debug#scriptengine)
 ScriptEngine allows you to hot reload mods, i.e., while the game is running, and at any time. Needless to say, this is absolutely invaluable to debugging.
 
 To install:
