@@ -3,8 +3,6 @@
 
   <PropertyGroup>
     <BepPath>..\src\BepInEx</BepPath>
-    <SteamPathX>$(SteamPath)</SteamPathX>
-    <SteamPathX Condition="'$(SteamPathX)' == ''">C:\Program Files (x86)\Steam\</SteamPathX>
     <Version>1.0.0</Version>
     <TargetFramework>net35</TargetFramework>
     <DebugType>None</DebugType>

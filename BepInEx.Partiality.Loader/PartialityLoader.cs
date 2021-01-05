@@ -22,13 +22,14 @@ namespace BepInEx.Partiality.Loader
     [BepInPlugin(ID, NAME, VERSION)]
     public class PartialityLoader : BaseUnityPlugin
     {
+        // Forked from notfood on github
         const string ID = "github.dual_iron.BepInExPartialityLoader";
         const string NAME = "Partiality Loader";
         const string VERSION = "1.0";
 
         void Awake()
         {
-            Logger.LogInfo("AAAA");
+            Directory.CreateDirectory(Path.Combine(Paths.GameRootPath, "UserData")); // Fix for vanilla weirdness
             GenerateHooks();
             BootstrapPartiality();
             LoadPartialityMods();
