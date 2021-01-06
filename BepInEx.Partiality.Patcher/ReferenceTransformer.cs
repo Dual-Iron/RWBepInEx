@@ -84,7 +84,7 @@ namespace BepInEx.Partiality.Patcher
         // Returns new member name as a string
         private string Transform(MemberReference member, NameDetails details)
         {
-            var newHooks = Program.NewHooksAssembly.MainModule;
+            var newHooks = Program.NewHooksAssembly;
             var newHooksType = newHooks.GetType(member.DeclaringType.FullName);
 
             string culledName = member.Name.Substring(0, details.underscoreIndex);

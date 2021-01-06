@@ -110,7 +110,7 @@ namespace BepInEx.Partiality.Patcher
             if (method.DeclaringType.FullName.StartsWith("On."))
             {
                 // If we can find a new type & method, use it
-                var newType = Program.NewHooksAssembly.MainModule.GetType(method.DeclaringType.FullName);
+                var newType = Program.NewHooksAssembly.GetType(method.DeclaringType.FullName);
                 if (newType == null)
                     return false;
 

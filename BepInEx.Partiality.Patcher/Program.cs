@@ -11,7 +11,7 @@ namespace BepInEx.Partiality.Patcher
     {
         internal static ManualLogSource Logger { get; } = Logging.Logger.CreateLogSource("PartPatch");
 
-        internal static AssemblyDefinition NewHooksAssembly { get; private set; }
+        internal static ModuleDefinition NewHooksAssembly { get; private set; }
 
         static Program()
         {
@@ -39,28 +39,29 @@ namespace BepInEx.Partiality.Patcher
         {
             if (assembly.Name.Name == "HOOKS-Assembly-CSharp")
             {
-                NewHooksAssembly = assembly;
+                NewHooksAssembly = assembly.MainModule;
             }
             else
-            // If it references HOOKS-Assembly-CSharp and uses Partiality, it might be legacy!
-            // Note this code is very inefficient (LINQ and 2x the needed iterations!), but I doubt most mod assemblies have that many references, so meh.
-            if (Relevant(assembly))
-            {
-                var patcher = new Patcher(assembly.MainModule);
-                patcher.IgnoreAccessChecks();
-                patcher.UpdateMonoModHookNames();
-                patcher.Finish();
-            }
+                foreach (var module in assembly.Modules)
+                    // If it references HOOKS-Assembly-CSharp and uses Partiality, it might be legacy!
+                    // Note this code is very inefficient (LINQ and 2x the needed iterations!), but I doubt most mod assemblies have that many references, so meh.
+                    if (Relevant(module))
+                    {
+                        var patcher = new Patcher(module);
+                        patcher.IgnoreAccessChecks();
+                        patcher.UpdateMonoModHookNames();
+                        patcher.Finish();
+                    }
         }
 
-        private static bool Relevant(AssemblyDefinition asm)
+        private static bool Relevant(ModuleDefinition module)
         {
             bool foundHookGen = false;
             bool foundPartiality = false;
 
-            for (int i = 0; i < asm.MainModule.AssemblyReferences.Count; i++)
+            for (int i = 0; i < module.AssemblyReferences.Count; i++)
             {
-                var asmRef = asm.MainModule.AssemblyReferences[i];
+                var asmRef = module.AssemblyReferences[i];
 
                 if (!foundPartiality && asmRef.Name == "Partiality")
                 {
