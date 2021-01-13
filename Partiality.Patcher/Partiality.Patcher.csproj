@@ -21,7 +21,7 @@
     <Reference Include="$(BepPath)\core\Mono.Cecil.dll">
       <Private>false</Private>
     </Reference>
-    <Reference Include="$(BepPath)\core\MonoMod.Utils.dll">
+    <Reference Include="$(BepPath)\core\MonoMod.RuntimeDetour.dll">
       <Private>false</Private>
     </Reference>
   </ItemGroup>

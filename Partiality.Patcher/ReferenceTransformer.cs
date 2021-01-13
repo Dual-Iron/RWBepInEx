@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace BepInEx.Partiality.Patcher
+namespace Partiality.Patcher
 {
     public class ReferenceTransformer
     {
@@ -33,7 +33,7 @@ namespace BepInEx.Partiality.Patcher
                 // MonoMod hookgen types and methods ALWAYS have a declaring type, because methods can only exist inside types.
                 return;
             }
-            var details = ShouldTransform(input);
+            var details = ShouldTransform(member);
             if (!details.HasValue)
             {
                 return;
@@ -47,8 +47,14 @@ namespace BepInEx.Partiality.Patcher
             member.Name = types[member.Name] = Transform(member, details.Value);
         }
 
-        private NameDetails? ShouldTransform(string name)
+        private NameDetails? ShouldTransform(MemberReference member)
         {
+            if (member.Module.Assembly.Name.Name != "HOOKS-Assembly-CSharp")
+            {
+                return null;
+            }
+
+            string name = member.Name;
             NameDetails details = default;
 
             // Scan backwards for digits.
@@ -84,7 +90,7 @@ namespace BepInEx.Partiality.Patcher
         // Returns new member name as a string
         private string Transform(MemberReference member, NameDetails details)
         {
-            var newHooks = Program.NewHooksAssembly;
+            var newHooks = Program.NewHooksModule;
             var newHooksType = newHooks.GetType(member.DeclaringType.FullName);
 
             string culledName = member.Name.Substring(0, details.underscoreIndex);
