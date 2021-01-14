@@ -10,11 +10,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using MethodAttributes = Mono.Cecil.MethodAttributes;
 
 namespace Partiality.Patcher
 {
     public static class Program
     {
+        private static readonly MethodBase markAttrCtor = typeof(PartialityPatchedAttribute).GetConstructors()[0];
+
         internal static ManualLogSource Logger { get; } = BepInEx.Logging.Logger.CreateLogSource("PartPatch");
 
         internal static ModuleDefinition NewHooksModule { get; private set; }
@@ -30,14 +33,13 @@ namespace Partiality.Patcher
         {
             try
             {
-                string hooksPath = Combine(Paths.PluginPath, "PartialityWrapper", "HOOKS-Assembly-CSharp.dll");
-                NewHooksModule = AssemblyDefinition.ReadAssembly(new MemoryStream(File.ReadAllBytes(hooksPath))).MainModule;
-                string partPath = Combine(Paths.PluginPath, "PartialityWrapper", "Partiality.dll");
-                PartialityMod = AssemblyDefinition.ReadAssembly(new MemoryStream(File.ReadAllBytes(partPath))).MainModule?.GetType("Partiality.Modloader.PartialityMod");
+                NewHooksModule = ReadFromMemory(Combine(Paths.PluginPath, "PartialityWrapper", "HOOKS-Assembly-CSharp.dll")).MainModule;
+                PartialityMod = ReadFromMemory(Combine(Paths.PluginPath, "PartialityWrapper", "Partiality.dll")).MainModule?.GetType("Partiality.Modloader.PartialityMod");
+                PatchPartiality(PartialityMod.Module);
             }
             catch (Exception e)
             {
-                Logger.LogInfo("Could not get the required assemblies: " + e.Message);
+                Logger.LogError ("Could not get the required assemblies: " + e);
                 return;
             }
 
@@ -46,7 +48,7 @@ namespace Partiality.Patcher
             {
                 try
                 {
-                    using (var asm = AssemblyDefinition.ReadAssembly(new MemoryStream(File.ReadAllBytes(path)), new ReaderParameters { AssemblyResolver = resolver }))
+                    using (var asm = ReadFromMemory(path, new ReaderParameters { AssemblyResolver = resolver }))
                     {
                         foreach (var module in asm.Modules)
                         {
@@ -60,6 +62,11 @@ namespace Partiality.Patcher
 
             NewHooksModule.Dispose();
             PartialityMod.Module.Assembly.Dispose();
+        }
+
+        private static AssemblyDefinition ReadFromMemory(string path, ReaderParameters param = null)
+        {
+            return AssemblyDefinition.ReadAssembly(new MemoryStream(File.ReadAllBytes(path)), param ?? new ReaderParameters());
         }
 
         private static void PatchOne(ModuleDefinition module)
@@ -111,6 +118,46 @@ namespace Partiality.Patcher
             return firstPath;
         }
 
-        private static readonly MethodBase markAttrCtor = typeof(PartialityPatchedAttribute).GetConstructors()[0];
+        private static void PatchPartiality(ModuleDefinition module)
+        {
+            if (module.CustomAttributes.Any(c => c.AttributeType.Name == nameof(PartialityPatchedAttribute)))
+            {
+                return;
+            }
+            var attrCtor = module.ImportReference(markAttrCtor);
+            module.CustomAttributes.Add(new CustomAttribute(attrCtor));
+
+            Logger.LogInfo("Correcting Partiality DLL...");
+
+            // Make base type BaseUnityPlugin
+            PartialityMod.IsAbstract = true;
+            PartialityMod.BaseType = module.ImportReference(typeof(BaseUnityPlugin));
+
+            var ctor = PartialityMod.Methods.FirstOrDefault(m => m.IsConstructor && !m.IsStatic);
+            for (int i = 0; i < ctor.Body.Instructions.Count; i++)
+            {
+                if (ctor.Body.Instructions[i].Operand is MethodReference methodRef && methodRef.DeclaringType.Name == "Object" && methodRef.Name == ".ctor")
+                {
+                    var ctorInfo = typeof(BaseUnityPlugin).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, Type.EmptyTypes, null);
+                    ctor.Body.Instructions[i].Operand = module.ImportReference(ctorInfo);
+                }
+            }
+
+            // Neuter the LoadAllMods method
+            var loadAllModsMethod = module.GetType("Partiality.Modloader.ModManager").Methods.FirstOrDefault(m => m.Name == "LoadAllMods");
+            loadAllModsMethod.Body = new Mono.Cecil.Cil.MethodBody(loadAllModsMethod);
+            loadAllModsMethod.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+
+            // Add safety cctor
+            var partManager = module.GetType("Partiality.PartialityManager");
+            var createInstance = partManager.Methods.FirstOrDefault(m => m.Name == "CreateInstance");
+            var cctor = new MethodDefinition(".cctor", MethodAttributes.Private | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, module.TypeSystem.Void);
+            cctor.Body = new Mono.Cecil.Cil.MethodBody(cctor);
+            cctor.Body.Instructions.Add(Instruction.Create(OpCodes.Call, createInstance));
+            cctor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+            partManager.Methods.Add(cctor);
+
+            module.Assembly.Write(Combine(Paths.PluginPath, "PartialityWrapper", "Partiality.dll"));
+        }
     }
 }

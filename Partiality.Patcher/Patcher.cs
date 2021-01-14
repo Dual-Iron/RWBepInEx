@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using static Mono.Cecil.Cil.OpCodes;
+using static Mono.Cecil.Cil.Instruction;
 
 namespace Partiality.Patcher
 {
@@ -135,79 +136,73 @@ namespace Partiality.Patcher
             }
         }
 
-        private void GeneratePluginClass(TypeDefinition partType)
+        private void GeneratePluginClass(TypeDefinition pluginType)
         {
-            // DECLARE PLUGIN
-            var pluginType = new TypeDefinition(partType.Namespace, "Plugin_" + partType.Name, TypeAttributes.Public | TypeAttributes.AnsiClass | TypeAttributes.BeforeFieldInit)
-            {
-                BaseType = module.ImportReference(typeof(BaseUnityPlugin))
-            };
-            module.Types.Add(pluginType);
-
             // .. add attribute
             var attr = new CustomAttribute(module.ImportReference(typeof(BepInPlugin).GetConstructors()[0]));
-            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, partType.FullName.ToLower()));
-            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, partType.Name));
+            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, pluginType.FullName.ToLower()));
+            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, pluginType.Name));
             attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, module.Assembly.Name.Version.ToString()));
             pluginType.CustomAttributes.Add(attr);
 
-            // ..add field
-            var partField = new FieldDefinition("mod", FieldAttributes.Private, partType);
-            pluginType.Fields.Add(partField);
-
-            GenerateLoadOrder(partType, pluginType, partField);
-            GenerateUnloadOrder(pluginType, partField);
+            ModifyBaseCtorCall(pluginType);
+            GenerateLoadOrder(pluginType);
         }
 
-        private void GenerateLoadOrder(TypeDefinition partType, TypeDefinition pluginType, FieldDefinition partField)
+        private void ModifyBaseCtorCall(TypeDefinition pluginType)
         {
-            var on_enable = new MethodDefinition("OnEnable", MethodAttributes.HideBySig | MethodAttributes.Private, module.TypeSystem.Void);
-            pluginType.Methods.Add(on_enable);
-
-            // .. add methodbody
-            on_enable.Body = new MethodBody(on_enable);
-            var il = on_enable.Body.GetILProcessor();
-
-            var ctor = partType.Methods.First(m => m.IsConstructor && !m.IsStatic && m.Parameters.Count == 0 && (m.IsAssembly || m.IsPublic));
+            // Second instruction will always be base ctor call.
+            var baseCtor = typeof(BaseUnityPlugin).GetConstructor(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, Type.EmptyTypes, null);
+            var ctor = pluginType.Methods.FirstOrDefault(m => m.IsConstructor && !m.IsStatic && m.Parameters.Count == 0);
             if (ctor == null)
             {
-                throw new InvalidOperationException("Partiality type " + partType + " did not have a public or internal parameterless constructor.");
+                ctor = new MethodDefinition(".ctor", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, module.TypeSystem.Void);
+                ctor.Body = new MethodBody(ctor);
+                ctor.Body.Instructions.Add(Create(Ldarg_0));
+                ctor.Body.Instructions.Add(Create(Ret));
+                ctor.Body.Instructions.Add(Create(Ret));
+                pluginType.Methods.Add(ctor);
             }
-            il.Emit(Ldarg_0);
-            il.Emit(Newobj, ctor);
-            il.Emit(Stfld, partField);
+            ctor.Body.Instructions[1] = Create(Call, module.ImportReference(baseCtor));
+        }
+
+        private void GenerateLoadOrder(TypeDefinition pluginType)
+        {
+            var on_enable = pluginType.Methods.FirstOrDefault(m => m.Name == "OnEnable" && m.Parameters.Count == 0);
+            if (on_enable == null)
+            {
+                on_enable = new MethodDefinition("OnEnable", MethodAttributes.HideBySig | MethodAttributes.Private, module.TypeSystem.Void);
+                on_enable.Body = new MethodBody(on_enable);
+                on_enable.Body.Instructions.Add(Create(Ret));
+                pluginType.Methods.Add(on_enable);
+            }
+
+            var first = on_enable.Body.Instructions[0];
+
+            // .. add methodbody
+            var il = on_enable.Body.GetILProcessor();
 
             // Partiality load order is Init -> Init -> OnLoad -> OnLoad -> OnEnable.
 
-            var init = Program.PartialityMod.Methods.First(m => m.Name == "Init" && m.Parameters.Count == 0);
+            var init = pluginType.Methods.FirstOrDefault(m => m.Name == "Init" && m.Parameters.Count == 0);
             if (init != null)
             {
-                il.Emit(Ldarg_0);
-                il.Emit(Ldfld, partField);
-                il.Emit(Callvirt, module.ImportReference(init));
+                il.InsertBefore(first, Create(Ldarg_0));
+                il.InsertBefore(first, Create(Call, module.ImportReference(init)));
             }
 
-            var on_load = Program.PartialityMod.Methods.FirstOrDefault(m => m.Name == "OnLoad" && m.Parameters.Count == 0);
+            var on_load = pluginType.Methods.FirstOrDefault(m => m.Name == "OnLoad" && m.Parameters.Count == 0);
             if (on_load != null)
             {
-                il.Emit(Ldarg_0);
-                il.Emit(Ldfld, partField);
-                il.Emit(Callvirt, module.ImportReference(on_load));
-            }
-
-            var on_enable_part = Program.PartialityMod.Methods.FirstOrDefault(m => m.Name == "OnEnable" && m.Parameters.Count == 0);
-            if (on_enable_part != null)
-            {
-                il.Emit(Ldarg_0);
-                il.Emit(Ldfld, partField);
-                il.Emit(Callvirt, module.ImportReference(on_enable_part));
+                il.InsertBefore(first, Create(Ldarg_0));
+                il.InsertBefore(first, Create(Callvirt, module.ImportReference(on_load)));
             }
 
             // .. set bep plugin data
             var modIDField = module.ImportReference(Program.PartialityMod.Fields.First(f => f.Name == "ModID"));
             var versionField = module.ImportReference(Program.PartialityMod.Fields.First(f => f.Name == "Version"));
 
-            var pluginInfo = module.ImportReference(pluginType.BaseType.Resolve().Methods.First(f => f.Name == "get_Info"));
+            var pluginInfo = module.ImportReference(typeof(BaseUnityPlugin).GetProperty("Info").GetGetMethod());
             var metadata = module.ImportReference(pluginInfo.ReturnType.Resolve().Methods.First(f => f.Name == "get_Metadata"));
             var name = module.ImportReference(metadata.ReturnType.Resolve().Methods.First(f => f.Name == "set_Name"));
             var version = module.ImportReference(metadata.ReturnType.Resolve().Methods.First(f => f.Name == "set_Version"));
@@ -217,7 +212,6 @@ namespace Partiality.Patcher
             il.Emit(Callvirt, pluginInfo);
             il.Emit(Callvirt, metadata);
             il.Emit(Ldarg_0);
-            il.Emit(Ldfld, partField);
             il.Emit(Ldfld, modIDField);
             il.Emit(Callvirt, name);
 
@@ -226,9 +220,8 @@ namespace Partiality.Patcher
             il.Emit(Callvirt, pluginInfo);
             il.Emit(Callvirt, metadata);
             il.Emit(Ldarg_0);
-            il.Emit(Ldfld, partField);
             il.Emit(Ldfld, versionField);
-            il.Emit(Call, module.ImportReference(correctVersion)); // TODO: Don't rely on this assembly. This feels wrong. Just a hack.
+            il.Emit(Call, module.ImportReference(correctVersion));
             il.Emit(Callvirt, version);
 
             il.Emit(Ret);
@@ -253,31 +246,8 @@ namespace Partiality.Patcher
             }
             catch
             {
-                return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                return System.Reflection.Assembly.GetExecutingAssembly().GetName()?.Version ?? new Version(0, 0);
             }
-        }
-
-        private void GenerateUnloadOrder(TypeDefinition pluginType, FieldDefinition partField)
-        {
-            var on_disable = new MethodDefinition("OnDisable", MethodAttributes.HideBySig | MethodAttributes.Private, module.TypeSystem.Void);
-            pluginType.Methods.Add(on_disable);
-
-            on_disable.Body = new MethodBody(on_disable);
-            var il = on_disable.Body.GetILProcessor();
-
-            // Partiality unload order is OnDisable.
-
-            var on_disable_part = Program.PartialityMod.Methods.FirstOrDefault(m => m.Name == "OnDisable" && m.Parameters.Count == 0);
-            if (on_disable_part != null)
-            {
-                il.Emit(Ldarg_0);
-                il.Emit(Ldfld, partField);
-                il.Emit(Callvirt, module.ImportReference(on_disable_part));
-            }
-            il.Emit(Ldarg_0);
-            il.Emit(Ldnull);
-            il.Emit(Stfld, partField);
-            il.Emit(Ret);
         }
     }
 }
