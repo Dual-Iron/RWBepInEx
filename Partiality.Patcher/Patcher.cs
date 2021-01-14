@@ -124,6 +124,8 @@ namespace Partiality.Patcher
         {
             Program.Logger.LogInfo($"{id}: Replacing Partiality mod: " + partType.FullName);
 
+            AddCompanyAttr(partType);
+
             GeneratePluginClass(partType);
 
             for (int i = module.AssemblyReferences.Count - 1; i >= 0; i--)
@@ -132,6 +134,39 @@ namespace Partiality.Patcher
                 {
                     module.AssemblyReferences.RemoveAt(i);
                     break;
+                }
+            }
+        }
+
+        private void AddCompanyAttr(TypeDefinition partType)
+        {
+            if (module.CustomAttributes.Any(c => 
+            c.AttributeType.FullName == "System.Reflection.AssemblyCompanyAttribute" || 
+            c.AttributeType.FullName == "System.Reflection.AssemblyCopyrightAttribute"))
+            {
+                return;
+            }
+
+            foreach (var method in partType.Methods)
+            {
+                string author = null;
+                if (method.HasBody)
+                    foreach (var instr in method.Body.Instructions)
+                    {
+                        if (instr.OpCode.Code == Code.Ldstr && instr.Operand is string str && instr.Next.OpCode.Code == Code.Stfld && instr.Next.Operand is FieldReference fieldRef && fieldRef.Name == "author")
+                        {
+                            author = str;
+                            break;
+                        }
+                    }
+
+                if (author != null)
+                {
+                    var ctor = typeof(System.Reflection.AssemblyCompanyAttribute).GetConstructors()[0];
+                    var customAttr = new CustomAttribute(module.ImportReference(ctor));
+                    customAttr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, author));
+                    module.Assembly.CustomAttributes.Add(customAttr);
+                    return;
                 }
             }
         }
