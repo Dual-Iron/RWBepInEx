@@ -12,6 +12,9 @@ using System.Linq;
 using System.Reflection;
 using MethodAttributes = Mono.Cecil.MethodAttributes;
 
+// TODO: Trying to load CustomRegions simply doesn't work. I don't know why.
+// This was a fun experiment, but I'm gonna drop it in favor of mod loader API.
+
 namespace Partiality.Patcher
 {
     public static class Program
@@ -25,7 +28,7 @@ namespace Partiality.Patcher
 
         public static IEnumerable<string> TargetDLLs { get { yield break; } }
 
-#pragma warning disable IDE0060 // Remove unused parameter
+#pragma warning disable IDE0060
         public static void Patch(AssemblyDefinition assembly) { }
 #pragma warning restore IDE0060
 
