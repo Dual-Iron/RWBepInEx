@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,6 +27,8 @@ namespace BepInEx.Partiality.Loader
         const string ID = "github.dual_iron.BepInExPartialityLoader";
         const string NAME = "Partiality Loader";
         const string VERSION = "1.0";
+
+        public ReadOnlyCollection<PartialityMod> Mods { get; private set; }
 
         void Awake()
         {
@@ -124,6 +127,8 @@ namespace BepInEx.Partiality.Loader
             }
 
             var loadedModsSorted = loadedMods.OrderBy(mod => mod.loadPriority);
+
+            Mods = new ReadOnlyCollection<PartialityMod>(loadedModsSorted.ToArray());
 
             //Call mod load function
             foreach (PartialityMod pMod in loadedModsSorted) {
