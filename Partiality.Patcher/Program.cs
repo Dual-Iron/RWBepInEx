@@ -101,7 +101,9 @@ namespace Partiality.Patcher
                 var dir = Directory.CreateDirectory(Path.Combine(Paths.PluginPath, "Backups")).FullName;
                 foreach (var item in assemblies)
                 {
-                    File.Move(item.path, Path.Combine(dir, Path.GetFileName(item.path)));
+                    string destFileName = Path.Combine(dir, Path.GetFileName(item.path));
+                    File.Delete(destFileName);
+                    File.Move(item.path, destFileName);
                     item.def.Write(item.path);
                     item.def.Dispose();
                 }
