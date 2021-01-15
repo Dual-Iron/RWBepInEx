@@ -98,8 +98,10 @@ namespace Partiality.Patcher
                     }
                 }
 
+                var dir = Directory.CreateDirectory(Path.Combine(Paths.PluginPath, "Backups")).FullName;
                 foreach (var item in assemblies)
                 {
+                    File.Move(item.path, Path.Combine(dir, Path.GetFileName(item.path)));
                     item.def.Write(item.path);
                     item.def.Dispose();
                 }
