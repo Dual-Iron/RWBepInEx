@@ -140,7 +140,7 @@ namespace Partiality.Patcher
 
         private void AddCompanyAttr(TypeDefinition partType)
         {
-            if (module.CustomAttributes.Any(c => 
+            if (module.Assembly.CustomAttributes.Any(c => 
             c.AttributeType.FullName == "System.Reflection.AssemblyCompanyAttribute" || 
             c.AttributeType.FullName == "System.Reflection.AssemblyCopyrightAttribute"))
             {
@@ -180,25 +180,7 @@ namespace Partiality.Patcher
             attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, module.Assembly.Name.Version.ToString()));
             pluginType.CustomAttributes.Add(attr);
 
-            ModifyBaseCtorCall(pluginType);
             GenerateLoadOrder(pluginType);
-        }
-
-        private void ModifyBaseCtorCall(TypeDefinition pluginType)
-        {
-            // Second instruction will always be base ctor call.
-            var baseCtor = typeof(BaseUnityPlugin).GetConstructor(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, Type.EmptyTypes, null);
-            var ctor = pluginType.Methods.FirstOrDefault(m => m.IsConstructor && !m.IsStatic && m.Parameters.Count == 0);
-            if (ctor == null)
-            {
-                ctor = new MethodDefinition(".ctor", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, module.TypeSystem.Void);
-                ctor.Body = new MethodBody(ctor);
-                ctor.Body.Instructions.Add(Create(Ldarg_0));
-                ctor.Body.Instructions.Add(Create(Ret));
-                ctor.Body.Instructions.Add(Create(Ret));
-                pluginType.Methods.Add(ctor);
-            }
-            ctor.Body.Instructions[1] = Create(Call, module.ImportReference(baseCtor));
         }
 
         private void GenerateLoadOrder(TypeDefinition pluginType)

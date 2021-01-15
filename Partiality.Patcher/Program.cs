@@ -39,28 +39,74 @@ namespace Partiality.Patcher
             }
             catch (Exception e)
             {
-                Logger.LogError ("Could not get the required assemblies: " + e);
+                Logger.LogError("Could not get the required assemblies: " + e);
                 return;
             }
 
-            var resolver = new PatcherAssemblyResolver();
+            Logger.LogInfo("-- Collecting assemblies --");
+
+            var assemblies = new List<AssemblyFile>();
+            var resolver = new DependencyResolver(assemblies);
             foreach (var path in Directory.GetFiles(Paths.PluginPath, "*.dll", SearchOption.TopDirectoryOnly))
             {
+                AssemblyDefinition asm;
                 try
                 {
-                    using (var asm = ReadFromMemory(path, new ReaderParameters { AssemblyResolver = resolver }))
+                    asm = ReadFromMemory(path, new ReaderParameters { AssemblyResolver = resolver });
+                }
+                catch (BadImageFormatException) { continue; }
+                foreach (var module in asm.Modules)
+                {
+                    if (TryGetPartialityType(module, out var plugin))
                     {
-                        foreach (var module in asm.Modules)
-                        {
-                            PatchOne(module);
-                        }
-                        asm.Write(path);
+                        assemblies.Add(new AssemblyFile { def = asm, plugin = plugin, path = path });
+                        break;
                     }
                 }
-                catch (BadImageFormatException) { }
             }
 
-            NewHooksModule.Dispose();
+            if (assemblies.Count == 0)
+            {
+                Logger.LogInfo("No assemblies to patch.");
+            }
+            else 
+            {
+                Logger.LogInfo("-- Patching assemblies --");
+
+                foreach (var item in assemblies)
+                {
+                    foreach (var module in item.def.Modules)
+                    {
+                        var patcher = new Patcher(module);
+                        patcher.SupportPartialityType(item.plugin);
+                        patcher.IgnoreSecurity();
+                        if (module.AssemblyReferences.Any(r => r.Name == "HOOKS-Assembly-CSharp"))
+                        {
+                            patcher.UpdateILReferences();
+                        }
+                    }
+                }
+
+                Logger.LogInfo("-- Adding dependencies --");
+
+                var metadataResolver = new MetadataResolver(resolver);
+                foreach (var item in assemblies)
+                {
+                    foreach (var module in item.def.Modules)
+                    {
+                        DependencyAdder.AddDependencies(module, item, metadataResolver);
+                    }
+                }
+
+                foreach (var item in assemblies)
+                {
+                    item.def.Write(item.path);
+                    item.def.Dispose();
+                }
+            }
+
+            resolver.Dispose();
+            NewHooksModule.Assembly.Dispose();
             PartialityMod.Module.Assembly.Dispose();
         }
 
@@ -69,20 +115,15 @@ namespace Partiality.Patcher
             return AssemblyDefinition.ReadAssembly(new MemoryStream(File.ReadAllBytes(path)), param ?? new ReaderParameters());
         }
 
-        private static void PatchOne(ModuleDefinition module)
+        private static void PatchOne(ModuleDefinition module, TypeDefinition partType)
         {
-            // If it references HOOKS-Assembly-CSharp and uses Partiality, it might be legacy!
-            // Note this code is very inefficient (LINQ and 2x the needed iterations!), but I doubt most mod assemblies have that many references, so meh.
-            if (TryGetPartialityType(module, out var partType))
+            Logger.LogInfo("Patching " + partType.FullName);
+            var patcher = new Patcher(module);
+            patcher.SupportPartialityType(partType);
+            patcher.IgnoreSecurity();
+            if (module.AssemblyReferences.Any(r => r.Name == "HOOKS-Assembly-CSharp"))
             {
-                Logger.LogInfo("Patching " + partType.FullName);
-                var patcher = new Patcher(module);
-                patcher.SupportPartialityType(partType);
-                patcher.IgnoreSecurity();
-                if (module.AssemblyReferences.Any(r => r.Name == "HOOKS-Assembly-CSharp"))
-                {
-                    patcher.UpdateILReferences();
-                }
+                patcher.UpdateILReferences();
             }
         }
 
@@ -142,6 +183,13 @@ namespace Partiality.Patcher
                     ctor.Body.Instructions[i].Operand = module.ImportReference(ctorInfo);
                 }
             }
+
+            // .. add attribute because SOME MODS actually instantiate partiality mods
+            var attr = new CustomAttribute(module.ImportReference(typeof(BepInPlugin).GetConstructors()[0]));
+            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, "com.poopyhead.partiality"));
+            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, "Partiality"));
+            attr.ConstructorArguments.Add(new CustomAttributeArgument(module.TypeSystem.String, module.Assembly.Name.Version.ToString()));
+            PartialityMod.CustomAttributes.Add(attr);
 
             // Neuter the LoadAllMods method
             var loadAllModsMethod = module.GetType("Partiality.Modloader.ModManager").Methods.FirstOrDefault(m => m.Name == "LoadAllMods");
