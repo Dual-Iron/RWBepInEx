@@ -15,13 +15,7 @@
     <Reference Include="$(BepPath)\core\BepInEx.dll">
       <Private>false</Private>
     </Reference>
-    <Reference Include="$(BepPath)\core\BepInEx.Preloader.dll">
-      <Private>false</Private>
-    </Reference>
     <Reference Include="$(BepPath)\core\Mono.Cecil.dll">
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="$(BepPath)\core\MonoMod.Utils.dll">
       <Private>false</Private>
     </Reference>
   </ItemGroup>

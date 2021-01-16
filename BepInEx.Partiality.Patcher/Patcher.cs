@@ -1,65 +1,72 @@
-﻿using BepInEx.Logging;
-using Mono.Cecil;
+﻿using Mono.Cecil;
+using Mono.Cecil.Cil;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace BepInEx.Partiality.Patcher
 {
-    public partial class Patcher
+    public static class Patcher
     {
-        private static readonly MethodBase ignoreAccessChecksCtor = typeof(IgnoresAccessChecksToAttribute).GetConstructor(new[] { typeof(string) });
-
-        private static int globalId;
-
-        private readonly ReferenceTransformer types = new ReferenceTransformer();
-        private readonly ModuleDefinition module;
-        private readonly int id;
-
-        public Patcher(ModuleDefinition module)
+        public static void UpdateMonoModHookNames(ModuleDefinition module)
         {
-            id = globalId++;
-            this.module = module;
-        }
-
-        public void UpdateMonoModHookNames()
-        {
-            Program.Logger.LogInfo($"{id}: Updating MonoMod HookGen names");
-
             try
             {
-                new TypeScanner(types).TransformTypes(module);
+                new TypeScanner(new ReferenceTransformer()).TransformTypes(module);
             }
             catch (Exception e)
             {
-                Program.Logger.LogError($"{id}: Failed updating MonoMod hook names: " + e);
+                Program.Logger.LogError($"Failed updating MonoMod hook names: " + e);
             }
         }
 
-        public void IgnoreAccessChecks()
+        public static void IgnoreAccessChecks(AssemblyDefinition assembly)
         {
-            Program.Logger.LogInfo($"{id}: Adding IgnoresAccessChecksToAttribute");
-
+            // Thanks pastebee for this code
+            // It's horrific but it works!
             try
             {
-                var ctorRef = module.ImportReference(ignoreAccessChecksCtor);
-                var item = new CustomAttribute(ctorRef);
-                var attributeArg = new CustomAttributeArgument(module.TypeSystem.String, "Assembly-CSharp");
+                ModuleDefinition module = assembly.MainModule;
+                TypeDefinition IgnoresAccessChecksToAttribute = new TypeDefinition("System.Runtime.CompilerServices", "IgnoresAccessChecksToAttribute", TypeAttributes.Public | TypeAttributes.BeforeFieldInit, module.ImportReference(typeof(Attribute)));
+                IgnoresAccessChecksToAttribute.CustomAttributes.Add(new CustomAttribute(module.ImportReference(typeof(AttributeUsageAttribute).GetConstructor(new Type[] { typeof(AttributeTargets) })), new byte[] { 1, 0, 1, 0, 0, 0, 1, 0, 84, 2, 13, 65, 108, 108, 111, 119, 77, 117, 108, 116, 105, 112, 108, 101, 1 }));
+                FieldDefinition backingField = new FieldDefinition("<AssemblyName>k__BackingField", FieldAttributes.Private | FieldAttributes.InitOnly, module.TypeSystem.String);
+                IgnoresAccessChecksToAttribute.Fields.Add(backingField);
+                backingField.CustomAttributes.Add(new CustomAttribute(module.ImportReference(typeof(CompilerGeneratedAttribute).GetConstructor(new Type[0]))));
+                MethodDefinition ctor = new MethodDefinition(".ctor", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, module.TypeSystem.Void);
+                ctor.Parameters.Add(new ParameterDefinition("assemblyName", ParameterAttributes.None, module.TypeSystem.String));
+                ILProcessor il = ctor.Body.GetILProcessor();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Call, module.ImportReference(typeof(Attribute).GetConstructor(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, null, new Type[0], null)));
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_1);
+                il.Emit(OpCodes.Stfld, backingField);
+                il.Emit(OpCodes.Ret);
+                IgnoresAccessChecksToAttribute.Methods.Add(ctor);
+                MethodDefinition get_AssemblyName = new MethodDefinition("get_AssemblyName", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName, module.TypeSystem.String);
+                il = get_AssemblyName.Body.GetILProcessor();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, backingField);
+                il.Emit(OpCodes.Ret);
+                get_AssemblyName.CustomAttributes.Add(new CustomAttribute(module.ImportReference(typeof(CompilerGeneratedAttribute).GetConstructor(new Type[0]))));
+                IgnoresAccessChecksToAttribute.Methods.Add(get_AssemblyName);
+                PropertyDefinition AssemblyName = new PropertyDefinition("AssemblyName", PropertyAttributes.None, module.TypeSystem.String);
+                AssemblyName.GetMethod = get_AssemblyName;
+                IgnoresAccessChecksToAttribute.Properties.Add(AssemblyName);
+                module.Types.Add(IgnoresAccessChecksToAttribute);
 
-                item.ConstructorArguments.Add(attributeArg);
+                module.CustomAttributes.Add(new CustomAttribute(module.ImportReference(typeof(System.Security.UnverifiableCodeAttribute).GetConstructor(new Type[0]))));
 
-                module.Assembly.CustomAttributes.Add(item);
+                SecurityDeclaration dec = new SecurityDeclaration(SecurityAction.RequestMinimum);
+                SecurityAttribute attr = new SecurityAttribute(module.ImportReference(typeof(System.Security.Permissions.SecurityPermissionAttribute)));
+                attr.Properties.Add(new CustomAttributeNamedArgument("SkipVerification", new CustomAttributeArgument(module.TypeSystem.Boolean, true)));
+                dec.SecurityAttributes.Add(attr);
+                assembly.SecurityDeclarations.Add(dec);
+
+                assembly.CustomAttributes.Add(new CustomAttribute(ctor, new byte[] { 1, 0, 15, 65, 115, 115, 101, 109, 98, 108, 121, 45, 67, 83, 104, 97, 114, 112, 0, 0 }));
             }
             catch (Exception e)
             {
-                Program.Logger.LogError($"{id}: Failed adding attribute: " + e);
+                Program.Logger.LogError($"Failed ignoring access modifiers: " + e);
             }
-        }
-
-        public void Finish()
-        {
         }
     }
 }

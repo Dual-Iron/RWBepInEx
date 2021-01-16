@@ -84,12 +84,10 @@ namespace BepInEx.Partiality.Patcher
         // Returns new member name as a string
         private string Transform(MemberReference member, NameDetails details)
         {
-            var newHooks = Program.NewHooksAssembly;
+            var newHooks = Program.NewHooksModule;
             var newHooksType = newHooks.GetType(member.DeclaringType.FullName);
 
             string culledName = member.Name.Substring(0, details.underscoreIndex);
-
-            Program.Logger.LogInfo("Finding match for " + member.FullName);
 
             // This code may be gross, but at least it's compact & efficient!
             // Start with an index of 0. Count up with each identical hook name we find, and once the number matches the old number, we have the right overload.
