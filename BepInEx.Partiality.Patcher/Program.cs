@@ -20,6 +20,8 @@ namespace BepInEx.Partiality.Patcher
 
         public static void Finish()
         {
+            Logger.LogInfo("Initializing Partiality patcher");
+
             string hooksAsm = Utility.CombinePaths(Paths.PluginPath, "PartialityWrapper", "HOOKS-Assembly-CSharp.dll");
 
             NewHooksModule = AssemblyDefinition.ReadAssembly(hooksAsm).MainModule;
@@ -47,8 +49,6 @@ namespace BepInEx.Partiality.Patcher
                 Patcher.IgnoreAccessChecks(asm);
                 foreach (var module in asm.Modules) 
                 {
-                    // If it references HOOKS-Assembly-CSharp and uses Partiality, it might be legacy!
-                    // Note this code is very inefficient (LINQ and 2x the needed iterations!), but I doubt most mod assemblies have that many references, so meh.
                     if (module.AssemblyReferences.Any(a => a.Name == "HOOKS-Assembly-CSharp"))
                     {
                         Patcher.UpdateMonoModHookNames(module);
@@ -76,6 +76,9 @@ namespace BepInEx.Partiality.Patcher
             }
 
             NewHooksModule.Assembly.Dispose();
+            NewHooksModule = null;
+
+            Logger.LogInfo("Finished Partiality patcher");
         }
     }
 
