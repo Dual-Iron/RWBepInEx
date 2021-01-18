@@ -28,8 +28,6 @@ namespace BepInEx.Partiality.Loader
         const string NAME = "Partiality Loader";
         const string VERSION = "1.0";
 
-        public ReadOnlyCollection<PartialityMod> Mods { get; private set; }
-
         void Awake()
         {
             Directory.CreateDirectory(Path.Combine(Paths.GameRootPath, "UserData")); // Fix for vanilla weirdness
@@ -108,7 +106,7 @@ namespace BepInEx.Partiality.Loader
                 }
 
                 try {
-                    PartialityMod newMod = (PartialityMod) Activator.CreateInstance(t);
+                    PartialityMod newMod = (PartialityMod)Activator.CreateInstance(t);
 
                     newMod.Init();
 
@@ -127,8 +125,6 @@ namespace BepInEx.Partiality.Loader
             }
 
             var loadedModsSorted = loadedMods.OrderBy(mod => mod.loadPriority);
-
-            Mods = new ReadOnlyCollection<PartialityMod>(loadedModsSorted.ToArray());
 
             //Call mod load function
             foreach (PartialityMod pMod in loadedModsSorted) {
