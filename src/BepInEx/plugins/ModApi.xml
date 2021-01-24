@@ -1,0 +1,186 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ModApi</name>
+    </assembly>
+    <members>
+        <member name="T:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute">
+            <inheritdoc/>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute.#ctor(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute.AssemblyName">
+            <inheritdoc/>
+        </member>
+        <member name="T:ModApi.ModMetadata">
+            <summary>
+            Represents a mod's metadata. See <see cref="T:ModApi.Mod_BepInEx"/> and <see cref="T:ModApi.Mod_Partiality"/> for commonly used derived types.
+            <para/> Remember to set references to this class (and any associated mod references) to <see langword="null"/> when you are finished using them.
+            </summary>
+        </member>
+        <member name="M:ModApi.ModMetadata.#ctor(System.String,System.Version,System.String)">
+            <summary>
+            Initializes a new <see cref="T:ModApi.ModMetadata"/> with the specified name, version, and author.
+            </summary>
+        </member>
+        <member name="M:ModApi.ModMetadata.#ctor(System.String,System.String,System.String)">
+            <summary>
+            Initializes a new <see cref="T:ModApi.ModMetadata"/> with the specified name, version string, and author. Tries to parse version string into <see cref="P:ModApi.ModMetadata.Version"/>.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModMetadata.Name">
+            <summary>
+            The mod's name.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModMetadata.Version">
+            <summary>
+            The mod's version as a <see cref="T:System.Version"/>. May be null if the mod does not use a valid version format.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModMetadata.VersionStr">
+            <summary>
+            The mod's version as a <see cref="T:System.String"/>.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModMetadata.Author">
+            <summary>
+            The mod's author.
+            </summary>
+        </member>
+        <member name="T:ModApi.ModResolver">
+            <summary>
+            Holds mod instances.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModResolver.Repositories">
+            <summary>
+            A collection of all mod resolvers.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModResolver.Default">
+            <summary>
+            The default mod resolver. Can resolve BepInEx through <see cref="M:UnityEngine.Object.FindObjectOfType(System.Type)"/> and Partiality mods through <see cref="F:Partiality.Modloader.ModManager.loadedMods"/>.
+            </summary>
+        </member>
+        <member name="M:ModApi.ModResolver.Find(System.Type)">
+            <summary>
+            Finds the mod associated with the given type. This can be rather expensive to call, so cache the results when possible. 
+            <para/> If you cache the result, make sure to dispose of it. See <see cref="T:ModApi.ModMetadata"/>.
+            </summary>
+            <returns>The mod's metadata, or <see langword="null"/> if none was found.</returns>
+        </member>
+        <member name="M:ModApi.ModResolver.TryFind(System.Type)">
+            <summary>
+            Implementations of this method should either return a <see cref="T:ModApi.ModMetadata"/> instance or <see langword="null"/>.
+            </summary>
+            <param name="type"></param>
+            <returns></returns>
+        </member>
+        <member name="T:ModApi.ModUtils">
+            <summary>
+            Contains relevant variables and methods for mod developers.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModUtils.ReferencesBepInEx">
+            <summary>
+            Gets if BepInEx is being used.
+            </summary>
+        </member>
+        <member name="P:ModApi.ModUtils.ReferencesPartiality">
+            <summary>
+            Gets if Partiality is being used. Included for consistency. Should always return <see langword="true"/>.
+            </summary>
+        </member>
+        <member name="M:ModApi.ModUtils.TryGetPlugin``1">
+            <summary>
+            Gets the BepInEx plugin of the specified type, or <see langword="null"/> if none exists. See <see cref="M:ModApi.ModResolver.Find(System.Type)"/>.
+            </summary>
+            <typeparam name="T">The type of plugin.</typeparam>
+        </member>
+        <member name="M:ModApi.ModUtils.TryGetPartialityMod``1">
+            <summary>
+            Gets the Partiality mod of the specified type, or <see langword="null"/> if none exists. See <see cref="M:ModApi.ModResolver.Find(System.Type)"/>.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <returns></returns>
+        </member>
+        <member name="M:ModApi.ModUtils.RequestMainProcessSwitch(ProcessManager,System.Func{ProcessManager,MainLoopProcess},System.Single)">
+            <summary>
+            Requests switching main processes like the game does, but without using enums. Example:
+            <code>
+            processManager.RequestMainProcessSwitch(pm => new ModMenu(pm));
+            </code>
+            </summary>
+        </member>
+        <member name="M:ModApi.ModUtils.TryGetMod(System.Type)">
+            <summary>
+            Resolves the mod for the specified type. Returns <see langword="null"/> if no mod is found.
+            Example: 
+            <code>
+            if (myType.TryGetMod() is <see cref="T:ModApi.Mod_Partiality"/> mod)
+            {
+                /* Do funny things with 'mod' */
+            }
+            </code>
+            </summary>
+        </member>
+        <member name="M:ModApi.ModUtils.TryGetAuthor(BepInEx.BaseUnityPlugin)">
+            <summary>
+            Attempts to get the author of a <see cref="T:BepInEx.BaseUnityPlugin"/>. This method uses reflection, so cache the result.
+            </summary>
+        </member>
+        <member name="T:ModApi.Mod_BepInEx">
+            <summary>
+            Represents a <see cref="T:BepInEx.BaseUnityPlugin"/>.
+            </summary>
+        </member>
+        <member name="M:ModApi.Mod_BepInEx.#ctor(BepInEx.BaseUnityPlugin)">
+            <param name="instance">The mod instance.</param>
+        </member>
+        <member name="P:ModApi.Mod_BepInEx.Instance">
+            <summary>
+            The instance of the plugin that this metadata represents.
+            </summary>
+        </member>
+        <member name="T:ModApi.Mod_Partiality">
+            <summary>
+            Represents a <see cref="T:Partiality.Modloader.PartialityMod"/>.
+            </summary>
+        </member>
+        <member name="M:ModApi.Mod_Partiality.#ctor(Partiality.Modloader.PartialityMod)">
+            <param name="instance">The mod instance.</param>
+        </member>
+        <member name="P:ModApi.Mod_Partiality.Instance">
+            <summary>
+            The instance of the partiality mod that this metadata represents.
+            </summary>
+        </member>
+        <member name="T:ModApi.PathUtils">
+            <summary>
+            Holds some cached common paths for convenience and performance.
+            </summary>
+        </member>
+        <member name="M:ModApi.PathUtils.PathCombine(System.String,System.String[])">
+            <summary>
+            Combines all the specified paths.
+            </summary>
+        </member>
+        <member name="P:ModApi.PathUtils.Managed">
+            <summary>
+            The Rain World managed assemblies directory. 'Rain World/RainWorld_Data/Managed'
+            </summary>
+        </member>
+        <member name="P:ModApi.PathUtils.RainWorld">
+            <summary>
+            The Rain World root directory. 'Rain World'
+            </summary>
+        </member>
+        <member name="P:ModApi.PathUtils.ModDirectory">
+            <summary>
+            The Partiality mods directory. 'Rain World/Mods'
+            </summary>
+        </member>
+    </members>
+</doc>

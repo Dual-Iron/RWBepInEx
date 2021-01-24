@@ -1,0 +1,4 @@
+^$ This file contains regular expressions. If a file in the plugins directory matches any of these, it will not be moved to Mods.  The first one ignores all files without an extension.
+^([^.]+)(?!\.)$
+ModLoader\.*
+ModApi\.*
