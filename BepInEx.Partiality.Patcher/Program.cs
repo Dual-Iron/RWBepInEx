@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using Mono.Cecil;
+using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,18 +27,18 @@ namespace BepInEx.Partiality.Patcher
 
             NewHooksModule = AssemblyDefinition.ReadAssembly(hooksAsm).MainModule;
 
-            string backups = Directory.CreateDirectory(Path.Combine(Paths.PluginPath, "Backups")).FullName;
+            string backups = Directory.CreateDirectory(Path.Combine(Paths.BepInExRootPath, "pluginBackups")).FullName;
 
             foreach (var file in Directory.GetFiles(Paths.PluginPath, "*.dll", SearchOption.TopDirectoryOnly))
             {
                 AssemblyDefinition asm;
                 try
                 {
-                    asm = AssemblyDefinition.ReadAssembly(new MemoryStream(File.ReadAllBytes(file)));
+                    asm = AssemblyDefinition.ReadAssembly(file);
                 }
                 catch { continue; }
 
-                if (asm.CustomAttributes.Any(c => c.AttributeType.FullName == typeof(PartialityPatchedAttribute).FullName) ||
+                if (asm.CustomAttributes.Any(c => c.AttributeType.Name == "_PartialityPorted") ||
                     !asm.Modules.Any(m => m.Types.Any(t => t.BaseType?.FullName == "Partiality.Modloader.PartialityMod")))
                 {
                     asm.Dispose();
@@ -55,24 +56,33 @@ namespace BepInEx.Partiality.Patcher
                     }
                 }
 
-                string filename = Path.GetFileName(file);
-                string backupPath = Path.Combine(backups, filename);
-                try
-                {
-                    File.Delete(backupPath);
-                    File.Move(file, backupPath);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogWarning("Could not back up " + asm.Name.Name + ". Reason: " + e.Message);
-                }
-
                 // Successfully patched.
-                var attr = typeof(PartialityPatchedAttribute).GetConstructors()[0];
-                asm.CustomAttributes.Add(new CustomAttribute(asm.MainModule.ImportReference(attr)));
+                var attrType = new TypeDefinition(asm.Name.Name, "_PartialityPorted", TypeAttributes.Sealed | TypeAttributes.NotPublic | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout | TypeAttributes.BeforeFieldInit, asm.MainModule.ImportReference(typeof(Attribute)));
+                var ctor = new MethodDefinition(".ctor", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, asm.MainModule.TypeSystem.Void);
+                ctor.Body = new MethodBody(ctor);
+                ctor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
+                attrType.Methods.Add(ctor);
+                asm.MainModule.Types.Add(attrType);
+                asm.CustomAttributes.Add(new CustomAttribute(ctor));
 
-                asm.Write(file);
-                asm.Dispose();
+                using (var ms = new MemoryStream())
+                {
+                    asm.Write(ms);
+                    asm.Dispose();
+
+                    string filename = Path.GetFileName(file);
+
+                    try
+                    {
+                        File.Copy(file, Path.Combine(backups, filename), true);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogWarning("Could not back up " + filename + ". Reason: " + e.Message);
+                    }
+
+                    File.WriteAllBytes(file, ms.ToArray());
+                }
             }
 
             NewHooksModule.Assembly.Dispose();
@@ -80,10 +90,5 @@ namespace BepInEx.Partiality.Patcher
 
             Logger.LogInfo("Finished Partiality patcher");
         }
-    }
-
-    public sealed class PartialityPatchedAttribute : Attribute
-    {
-
     }
 }
