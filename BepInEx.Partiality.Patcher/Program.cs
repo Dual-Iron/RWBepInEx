@@ -38,8 +38,7 @@ namespace BepInEx.Partiality.Patcher
                 }
                 catch { continue; }
 
-                if (asm.CustomAttributes.Any(c => c.AttributeType.Name == "_PartialityPorted") ||
-                    !asm.Modules.Any(m => m.Types.Any(t => t.BaseType?.FullName == "Partiality.Modloader.PartialityMod")))
+                if (asm.CustomAttributes.Any(c => c.AttributeType.Name == "_PartialityPorted"))
                 {
                     asm.Dispose();
                     continue;
@@ -48,9 +47,11 @@ namespace BepInEx.Partiality.Patcher
                 Logger.LogInfo("-- Patching " + asm.Name.Name + " --");
 
                 Patcher.IgnoreAccessChecks(asm);
-                foreach (var module in asm.Modules) 
+
+                foreach (var module in asm.Modules)
                 {
-                    if (module.AssemblyReferences.Any(a => a.Name == "HOOKS-Assembly-CSharp"))
+                    if (module.AssemblyReferences.Any(a => a.Name == "HOOKS-Assembly-CSharp") &&
+                        module.Types.Any(t => t.BaseType?.FullName == "Partiality.Modloader.PartialityMod"))
                     {
                         Patcher.UpdateMonoModHookNames(module);
                     }
